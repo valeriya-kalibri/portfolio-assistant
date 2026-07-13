@@ -20,9 +20,9 @@ def _chat_model() -> str:
 
 
 CLASSIFY_PROMPT = """Classify the visitor's message into exactly one of:
-- about_me: anything about Lera's background, skills, experience, projects, education, \
-availability, or how to contact her
-- off_topic: anything unrelated to Lera professionally (weather, general trivia, etc.)
+- about_me: anything about Valeriya's background, skills, experience, projects, \
+education, availability, or how to contact her
+- off_topic: anything unrelated to Valeriya professionally (weather, general trivia, etc.)
 
 Respond with only the single label, nothing else."""
 
@@ -46,16 +46,16 @@ def rag_search(state: AgentState) -> AgentState:
     return state
 
 
-SYSTEM_PROMPT_TEMPLATE = """You are an AI assistant representing Valeriya "Lera" Paine \
+SYSTEM_PROMPT_TEMPLATE = """You are an AI assistant representing Valeriya Paine \
 on her portfolio site. You answer recruiters' and hiring managers' questions about her \
 background, skills, experience, and projects.
 
 Rules:
 - Answer only from the context below. If the context doesn't cover the question, say \
-you don't have that detail and suggest reaching out to Lera directly at \
+you don't have that detail and suggest reaching out to Valeriya directly at \
 Lera.Paine@gmail.com or linkedin.com/in/valeriya-paine.
-- For questions unrelated to Lera professionally: politely decline and redirect to what \
-Lera does.
+- For questions unrelated to Valeriya professionally: politely decline and redirect to \
+what Valeriya does.
 - When asked how to contact her or about her availability, share her email and \
 LinkedIn. Never share a phone number — she does not want it public.
 - Keep answers concise and conversational.
@@ -74,7 +74,7 @@ def generate_response(state: AgentState) -> AgentState:
 
     if state["intent"] == "off_topic":
         system_prompt = (
-            "You are an AI assistant representing Valeriya \"Lera\" Paine. The "
+            "You are an AI assistant representing Valeriya Paine. The "
             "visitor's question is unrelated to her professionally. Politely decline "
             "and redirect them to ask about her background, skills, or projects."
         )

@@ -13,7 +13,9 @@ from rag.embedder import embed_text
 STORAGE_BUCKET = "kb-documents"
 
 
-def _replace_document(title: str, source_type: str, storage_path: str | None) -> dict:
+def _replace_document(
+    title: str, source_type: str, source_path: str, storage_path: str | None
+) -> dict:
     supabase = get_supabase()
 
     existing = (
@@ -27,7 +29,14 @@ def _replace_document(title: str, source_type: str, storage_path: str | None) ->
 
     return (
         supabase.table("knowledge_documents")
-        .insert({"title": title, "source_type": source_type, "storage_path": storage_path})
+        .insert(
+            {
+                "title": title,
+                "source_type": source_type,
+                "source_path": source_path,
+                "storage_path": storage_path,
+            }
+        )
         .execute()
         .data[0]
     )
@@ -45,7 +54,7 @@ def _embed_and_store_chunks(document_id: str, text: str) -> int:
 
 
 def store_seed_document(title: str, source_path: str, text: str) -> int:
-    doc = _replace_document(title, "seed", None)
+    doc = _replace_document(title, "seed", source_path, None)
     return _embed_and_store_chunks(doc["id"], text)
 
 
@@ -59,7 +68,7 @@ def store_uploaded_pdf(title: str, filename: str, file_bytes: bytes) -> int:
     reader = PdfReader(io.BytesIO(file_bytes))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
-    doc = _replace_document(title, "upload", storage_path)
+    doc = _replace_document(title, "upload", filename, storage_path)
     return _embed_and_store_chunks(doc["id"], text)
 
 
@@ -71,7 +80,7 @@ def store_url_document(title: str, url: str) -> int:
         tag.decompose()
     text = re.sub(r"\n{3,}", "\n\n", soup.get_text("\n")).strip()
 
-    doc = _replace_document(title, "url", url)
+    doc = _replace_document(title, "url", url, None)
     return _embed_and_store_chunks(doc["id"], text)
 
 
