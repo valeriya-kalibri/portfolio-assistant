@@ -1,7 +1,7 @@
 # Selected Projects
 
 ## Portfolio Assistant (this project)
-A retrieval-augmented AI chatbot built to answer questions about Lera's background,
+A retrieval-augmented AI chatbot built to answer questions about Valeriya's background,
 skills, and experience for recruiters and hiring managers. Stack: FastAPI, LangGraph,
 OpenAI embeddings, Supabase pgvector for retrieval, Next.js/TypeScript frontend.
 

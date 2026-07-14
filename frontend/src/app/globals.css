@@ -1,3 +1,34 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  background-image: radial-gradient(rgba(212, 175, 55, 0.15) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+.gold-rule {
+  height: 1px;
+  width: 5rem;
+  background: linear-gradient(to right, transparent, #d4af37, transparent);
+}
+
+.gold-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 50px;
+  padding: 0.5em 1.4em;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #d4af37;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.gold-pill:hover {
+  background: #d4af37;
+  color: #060606;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}

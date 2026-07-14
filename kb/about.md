@@ -1,4 +1,4 @@
-# About Valeriya "Lera" Paine
+# About Valeriya Paine
 
 Valeriya Paine is an AI Solutions Engineer and Creative Technologist based in Orlando, FL.
 She holds an active Secret Clearance.
