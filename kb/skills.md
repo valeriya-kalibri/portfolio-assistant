@@ -1,33 +1,41 @@
-# Skills & Tools
+# Skills
 
-## Generative AI & Agentic Systems
-OpenAI API, Anthropic Claude API, LangChain, LangGraph. Prompt engineering, structured
-output, agentic workflow design and orchestration.
+**Generative AI & agentic systems:** OpenAI API, Anthropic Claude API, LangChain,
+LangGraph, prompt engineering, structured output, agentic workflow design and
+orchestration. This runs through nearly everything she's built recently — from this
+assistant's intent-routing graph to the business audit agent's multi-step
+orchestration to the voice agent's structured call-flow state.
 
-## RAG & Retrieval Systems
-Retrieval-Augmented Generation, vector databases, embedding-based retrieval, semantic
-search, document ingestion pipelines, Supabase pgvector.
+**RAG & retrieval systems:** Retrieval-augmented generation, vector databases,
+embedding-based retrieval, semantic search, document ingestion pipelines, Supabase
+pgvector. Directly applied in this portfolio assistant and in the multi-tenant
+client support chatbot platform, where retrieval isolation across tenants was the
+core engineering problem.
 
-## Local Generative AI & Media
-ComfyUI, local LLM deployment, Hugging Face model integration. Image, video, and music
-generation pipelines.
+**Local generative AI & media:** ComfyUI, local LLM deployment, Hugging Face model
+integration, image/video/music generation pipelines. This is ongoing personal
+R&D — extending the same systems-building instincts into creative media generation,
+outside of client work.
 
-## APIs & System Integration
-REST API design & integration, webhooks, JSON schema, Model Context Protocol (MCP),
-tool-access architectures, external data integration.
+**APIs & system integration:** REST API design and integration, webhooks, JSON
+schema, Model Context Protocol (MCP), tool-access architectures, external data
+integration. Used in the business audit agent's external API calls and the voice
+agent's telephony integration.
 
-## SaaS & Full-Stack Development
-Python, TypeScript, JavaScript, Node.js, Next.js. Full SaaS platform architecture —
-backend, database, and deployment (Supabase/PostgreSQL, Vercel, Railway, FastAPI).
+**SaaS & full-stack development:** Python, TypeScript, JavaScript, Node.js,
+Next.js. Full SaaS platform architecture — backend, database, and deployment
+(Supabase/PostgreSQL, Vercel, Railway, FastAPI). This is what it took to build and
+ship Kalibri Studios' products end-to-end, solo, with no team to hand infrastructure
+work to.
 
-## Creative Production & Pipeline
-3DS Max, Maya, Unreal Engine, Unity, Substance Suite. Asset pipeline architecture,
-real-time system constraints.
+**Creative production heritage:** 3DS Max, Maya, Unreal Engine, Unity, Substance
+Suite, asset pipeline architecture, real-time system constraints. Ten years of
+building production systems for defense and commercial clients under strict
+technical specs is where her instinct for "does this hold up under real constraints,
+not just in a demo" comes from — it shows up in how she approaches AI system design
+today.
 
-## Tooling & Collaboration
-Git, GitHub, Jira, VS Code, AI coding assistants (Copilot, Claude Code). Cross-functional
-engineering collaboration.
-
-## Client Delivery & Leadership
-End-to-end project ownership, client-facing scoping and communication, deadline
-management across simultaneous programs, discovery-through-deployment delivery.
+**Client delivery & leadership:** End-to-end project ownership, client-facing
+scoping and communication, deadline management across simultaneous programs,
+discovery-through-deployment delivery. She's run this playbook twice now — first as
+a 3D studio owner, now as an AI consultancy owner.

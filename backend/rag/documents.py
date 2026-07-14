@@ -1,64 +1,58 @@
 import io
 import re
 import uuid
+from datetime import datetime, timezone
 
 import requests
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
 
 from db.supabase_client import get_supabase
-from rag.chunking import chunk_text
 from rag.embedder import embed_text
 
 STORAGE_BUCKET = "kb-documents"
 
 
-def _replace_document(
-    title: str, source_type: str, source_path: str, storage_path: str | None
-) -> dict:
-    supabase = get_supabase()
-
-    existing = (
-        supabase.table("knowledge_documents")
-        .select("id")
-        .eq("title", title)
-        .execute()
-    )
-    for doc in existing.data:
-        supabase.table("knowledge_documents").delete().eq("id", doc["id"]).execute()
-
+def upsert_kb_document(*, slug: str, topic: str, title: str, content: str) -> dict:
+    embedding = embed_text(content)
     return (
-        supabase.table("knowledge_documents")
-        .insert(
+        get_supabase()
+        .table("kb_documents")
+        .upsert(
             {
+                "slug": slug,
+                "topic": topic,
                 "title": title,
-                "source_type": source_type,
-                "source_path": source_path,
-                "storage_path": storage_path,
-            }
+                "content": content,
+                "embedding": embedding,
+                "source_type": "seed",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="slug",
         )
         .execute()
         .data[0]
     )
 
 
-def _embed_and_store_chunks(document_id: str, text: str) -> int:
+def _replace_admin_document(
+    title: str, source_type: str, storage_path: str | None
+) -> None:
     supabase = get_supabase()
-    chunks = chunk_text(text)
-    for chunk in chunks:
-        embedding = embed_text(chunk)
-        supabase.table("knowledge_chunks").insert(
-            {"document_id": document_id, "content": chunk, "embedding": embedding}
-        ).execute()
-    return len(chunks)
+    existing = (
+        supabase.table("kb_documents")
+        .select("id, storage_path")
+        .eq("title", title)
+        .eq("source_type", source_type)
+        .execute()
+    )
+    for doc in existing.data:
+        if doc.get("storage_path"):
+            supabase.storage.from_(STORAGE_BUCKET).remove([doc["storage_path"]])
+        supabase.table("kb_documents").delete().eq("id", doc["id"]).execute()
 
 
-def store_seed_document(title: str, source_path: str, text: str) -> int:
-    doc = _replace_document(title, "seed", source_path, None)
-    return _embed_and_store_chunks(doc["id"], text)
-
-
-def store_uploaded_pdf(title: str, filename: str, file_bytes: bytes) -> int:
+def store_uploaded_pdf(title: str, filename: str, file_bytes: bytes) -> dict:
     supabase = get_supabase()
     storage_path = f"{uuid.uuid4()}-{filename}"
     supabase.storage.from_(STORAGE_BUCKET).upload(
@@ -68,11 +62,27 @@ def store_uploaded_pdf(title: str, filename: str, file_bytes: bytes) -> int:
     reader = PdfReader(io.BytesIO(file_bytes))
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
 
-    doc = _replace_document(title, "upload", filename, storage_path)
-    return _embed_and_store_chunks(doc["id"], text)
+    _replace_admin_document(title, "upload", storage_path)
+    embedding = embed_text(text)
+    return (
+        supabase.table("kb_documents")
+        .insert(
+            {
+                "slug": f"upload-{uuid.uuid4().hex[:8]}",
+                "topic": "other",
+                "title": title,
+                "content": text,
+                "embedding": embedding,
+                "source_type": "upload",
+                "storage_path": storage_path,
+            }
+        )
+        .execute()
+        .data[0]
+    )
 
 
-def store_url_document(title: str, url: str) -> int:
+def store_url_document(title: str, url: str) -> dict:
     response = requests.get(url, timeout=10)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
@@ -80,15 +90,31 @@ def store_url_document(title: str, url: str) -> int:
         tag.decompose()
     text = re.sub(r"\n{3,}", "\n\n", soup.get_text("\n")).strip()
 
-    doc = _replace_document(title, "url", url, None)
-    return _embed_and_store_chunks(doc["id"], text)
+    _replace_admin_document(title, "url", None)
+    embedding = embed_text(text)
+    return (
+        get_supabase()
+        .table("kb_documents")
+        .insert(
+            {
+                "slug": f"url-{uuid.uuid4().hex[:8]}",
+                "topic": "other",
+                "title": title,
+                "content": text,
+                "embedding": embedding,
+                "source_type": "url",
+            }
+        )
+        .execute()
+        .data[0]
+    )
 
 
 def list_documents() -> list[dict]:
     return (
         get_supabase()
-        .table("knowledge_documents")
-        .select("id, title, source_type, created_at")
+        .table("kb_documents")
+        .select("id, slug, topic, title, source_type, created_at")
         .order("created_at", desc=True)
         .execute()
         .data
@@ -98,7 +124,7 @@ def list_documents() -> list[dict]:
 def delete_document(document_id: str) -> None:
     supabase = get_supabase()
     doc = (
-        supabase.table("knowledge_documents")
+        supabase.table("kb_documents")
         .select("storage_path")
         .eq("id", document_id)
         .execute()
@@ -109,4 +135,4 @@ def delete_document(document_id: str) -> None:
     storage_path = doc[0].get("storage_path")
     if storage_path:
         supabase.storage.from_(STORAGE_BUCKET).remove([storage_path])
-    supabase.table("knowledge_documents").delete().eq("id", document_id).execute()
+    supabase.table("kb_documents").delete().eq("id", document_id).execute()

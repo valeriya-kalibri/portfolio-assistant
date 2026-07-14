@@ -1,7 +1,16 @@
 import os
+from datetime import date
 
 from openai import OpenAI
 
+from agent.prompts import (
+    ABOUT_ME_SYSTEM_PROMPT,
+    CLASSIFY_PROMPT,
+    LOW_CONFIDENCE_INSTRUCTIONS,
+    META_SYSTEM_PROMPT,
+    OFF_TOPIC_SYSTEM_PROMPT,
+    REWRITE_PROMPT,
+)
 from agent.state import AgentState
 from rag.retriever import search_knowledge
 
@@ -19,12 +28,9 @@ def _chat_model() -> str:
     return os.environ.get("CHAT_MODEL", "gpt-4o-mini")
 
 
-CLASSIFY_PROMPT = """Classify the visitor's message into exactly one of:
-- about_me: anything about Valeriya's background, skills, experience, projects, \
-education, availability, or how to contact her
-- off_topic: anything unrelated to Valeriya professionally (weather, general trivia, etc.)
-
-Respond with only the single label, nothing else."""
+def _history_as_openai_messages(messages: list) -> list[dict]:
+    role_map = {"human": "user", "ai": "assistant"}
+    return [{"role": role_map.get(m.type, "user"), "content": m.content} for m in messages]
 
 
 def classify_intent(state: AgentState) -> AgentState:
@@ -37,53 +43,54 @@ def classify_intent(state: AgentState) -> AgentState:
         temperature=0,
     )
     label = completion.choices[0].message.content.strip().lower()
-    state["intent"] = label if label in ("about_me", "off_topic") else "about_me"
+    state["intent"] = label if label in ("about_me", "meta", "off_topic") else "about_me"
+    return state
+
+
+def rewrite_query(state: AgentState) -> AgentState:
+    history = state.get("messages") or []
+    if not history:
+        state["search_query"] = state["query"]
+        return state
+
+    completion = _get_client().chat.completions.create(
+        model=_chat_model(),
+        messages=[
+            {"role": "system", "content": REWRITE_PROMPT},
+            *_history_as_openai_messages(history),
+            {"role": "user", "content": state["query"]},
+        ],
+        temperature=0,
+    )
+    state["search_query"] = completion.choices[0].message.content.strip()
     return state
 
 
 def rag_search(state: AgentState) -> AgentState:
-    state["rag_results"] = search_knowledge(state["query"])
+    query = state.get("search_query") or state["query"]
+    state["rag_results"] = search_knowledge(query)
     return state
 
 
-SYSTEM_PROMPT_TEMPLATE = """You are an AI assistant representing Valeriya Paine \
-on her portfolio site. You answer recruiters' and hiring managers' questions about her \
-background, skills, experience, and projects.
-
-Rules:
-- Answer only from the context below. If the context doesn't cover the question, say \
-you don't have that detail and suggest reaching out to Valeriya directly at \
-Lera.Paine@gmail.com or linkedin.com/in/valeriya-paine.
-- For questions unrelated to Valeriya professionally: politely decline and redirect to \
-what Valeriya does.
-- When asked how to contact her or about her availability, share her email and \
-LinkedIn. Never share a phone number — she does not want it public.
-- Keep answers concise and conversational.
-
-Context:
-{context}
-"""
-
-
 def generate_response(state: AgentState) -> AgentState:
-    context = "\n\n".join(chunk["content"] for chunk in state.get("rag_results", []))
-    if not context:
-        context = "(no matching context found)"
+    intent = state["intent"]
 
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(context=context)
+    if intent == "off_topic":
+        system_prompt = OFF_TOPIC_SYSTEM_PROMPT
+    else:
+        rag_results = state.get("rag_results", [])
+        context = "\n\n---\n\n".join(
+            f"## {r['title']}\n\n{r['content']}" for r in rag_results
+        ) or "(no matching context found)"
 
-    if state["intent"] == "off_topic":
-        system_prompt = (
-            "You are an AI assistant representing Valeriya Paine. The "
-            "visitor's question is unrelated to her professionally. Politely decline "
-            "and redirect them to ask about her background, skills, or projects."
+        template = ABOUT_ME_SYSTEM_PROMPT if intent == "about_me" else META_SYSTEM_PROMPT
+        system_prompt = template.format(
+            context=context,
+            low_confidence_instructions=LOW_CONFIDENCE_INSTRUCTIONS if not rag_results else "",
+            today=date.today().isoformat(),
         )
 
-    role_map = {"human": "user", "ai": "assistant"}
-    history = [
-        {"role": role_map.get(m.type, "user"), "content": m.content}
-        for m in state.get("messages", [])
-    ]
+    history = _history_as_openai_messages(state.get("messages", []))
 
     completion = _get_client().chat.completions.create(
         model=_chat_model(),

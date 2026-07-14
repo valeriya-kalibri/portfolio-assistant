@@ -3,7 +3,7 @@
 A retrieval-augmented AI chatbot that answers questions about Valeriya Paine's
 background, skills, and projects — built to demonstrate the same RAG/agent stack used
 in production client work (FastAPI + LangGraph + Supabase pgvector), including the
-document-ingestion pipeline (PDF/URL upload -> Storage -> chunk -> embed).
+document-ingestion pipeline (PDF/URL upload -> Storage -> extract -> embed).
 
 The frontend is a single-page landing site — photo, name, positioning line, links —
 with the chatbot as the main interactive element. That page is the link shared with
@@ -14,49 +14,75 @@ employers.
 ```
 frontend/   Next.js 15 (App Router) + TypeScript + Tailwind — landing page + chat UI
 backend/    FastAPI + LangGraph agent + RAG over Supabase pgvector
-kb/         Seed markdown content (about, skills, experience, projects)
-supabase/   SQL migrations: pgvector, knowledge_chunks/documents, kb-documents bucket
+kb/         17 topic-coherent seed docs (identity, career, venture, 8 projects, skills,
+            education, press, faq, personality, assistant's own architecture)
+supabase/   SQL migrations: pgvector, kb_documents (single-table, whole-doc chunking),
+            kb-documents Storage bucket
 ```
 
 ## How the agent works
 
-Each visitor message is classified as `about_me` or `off_topic` by the
-`classify_intent` node. `about_me` queries are routed through `rag_search`, which
-embeds the query with OpenAI and runs a pgvector similarity search against
-`knowledge_chunks` in Supabase. `generate_response` then answers grounded in whatever
-context came back — or, for `off_topic` messages, declines and redirects toward
-Valeriya's work instead.
+Each visitor message is classified by the `classify_intent` node into one of three
+labels: `about_me`, `meta` (questions about the assistant itself — its architecture,
+whether it's an AI), or `off_topic`. `about_me` queries first pass through
+`rewrite_query`, which contextualizes follow-ups ("why that one?") against chat
+history into a standalone search query before retrieval; `meta` queries skip
+rewriting and go straight to retrieval. Both then hit `rag_search`, which embeds the
+query with OpenAI and runs a pgvector similarity search (`match_kb_documents`) against
+`kb_documents` in Supabase. `generate_response` answers grounded in whatever context
+came back, using a branch-specific system prompt — or, for `off_topic` messages,
+declines and redirects toward Valeriya's work instead without hitting retrieval at
+all.
 
 ## Knowledge base & ingestion pipeline
 
 Content reaches the vector store through three paths, all defined in
-`backend/rag/documents.py` and landing in the same `knowledge_documents` /
-`knowledge_chunks` tables so retrieval doesn't care how a chunk got there:
+`backend/rag/documents.py` and landing in the same `kb_documents` table so retrieval
+doesn't care how a document got there. Nothing is sub-split — each row is one
+complete, topic-coherent document, embedded and retrieved as a single chunk:
 
-- **Seed content** — the markdown files in `kb/` (about, skills, experience,
-  projects) are embedded by `ingest.py`. This is how the initial bio content got in.
+- **Seed content** — the 17 markdown files in `kb/` (identity, career timeline, the
+  Kalibri Studios venture, eight individual projects, skills, education, press, FAQ,
+  personality, and the assistant's own architecture) are embedded by
+  `backend/rag/ingest.py`, run via `python -m scripts.run_ingest` from `backend/`.
+  This is how the initial bio content got in.
 - **PDF upload** — `store_uploaded_pdf` saves the file to the `kb-documents` Storage
-  bucket, extracts text, chunks it, and embeds it. Exposed via
+  bucket, extracts text, and embeds it whole. Exposed via
   `POST /kb/documents/upload`.
-- **URL ingestion** — `store_url_document` fetches a page, strips HTML, chunks, and
-  embeds. Exposed via `POST /kb/documents/url`.
+- **URL ingestion** — `store_url_document` fetches a page, strips HTML, and embeds the
+  resulting text whole. Exposed via `POST /kb/documents/url`.
 
 `GET /kb/documents` lists what's currently ingested; `DELETE /kb/documents/{id}`
-removes a document and its chunks (and its Storage object, if it has one). All four
-`/kb/documents*` routes are gated by an `X-Admin-Key` header checked against the
-`ADMIN_KEY` environment variable — there's no multi-tenant auth here, just a shared
-secret since Valeriya is the only one managing this KB.
+removes a document (and its Storage object, if it has one). All four `/kb/documents*`
+routes are gated by an `X-Admin-Key` header checked against the `ADMIN_KEY`
+environment variable — there's no multi-tenant auth here, just a shared secret since
+Valeriya is the only one managing this KB.
 
 ## Data layer
 
-Two Supabase migrations set up the schema:
+The schema went through a rework: the original two-table `knowledge_documents` /
+`knowledge_chunks` model (generic character-sliding-window chunking) was replaced by a
+single `kb_documents` table, one row per topic-coherent whole document. Current
+Supabase migrations, in order:
 
-- `20260713_knowledge_base.sql` — enables the `pgvector` extension and creates
-  `knowledge_documents`, `knowledge_chunks`, and the `match_knowledge_chunks` RPC used
-  for similarity search.
+- `20260713_knowledge_base.sql` — original two-table schema (`knowledge_documents`,
+  `knowledge_chunks`) and the `match_knowledge_chunks` RPC. Superseded below.
 - `20260714_kb_documents_storage.sql` — creates the private `kb-documents` Storage
-  bucket and adds `source_type` / `storage_path` columns to `knowledge_documents` so
-  seed, upload, and URL documents can be told apart and cleaned up correctly.
+  bucket and adds `source_type` / `storage_path` columns.
+- `20260714_drop_oversized_ivfflat_index.sql` — drops the ivfflat index on the old
+  table; at this corpus size (dozens of rows) it was silently missing relevant
+  matches, and a sequential scan is both faster and exact.
+- `20260714_lower_match_threshold.sql` — intermediate threshold tuning on the old
+  schema.
+- `20260714_kb_documents_rebuild.sql` — the actual rebuild: creates `kb_documents`
+  (with a `kb_topic` enum, an HNSW index, and `source_type`/`storage_path` for
+  seed/upload/url documents) and the `match_kb_documents` RPC, then drops the old
+  `knowledge_chunks` / `knowledge_documents` tables entirely.
+- `20260714_tune_kb_similarity_threshold.sql` — retunes `match_kb_documents` defaults
+  to `match_count=6`, `similarity_threshold=0.15` after stress-testing showed the
+  original `0.75` starting point excluded the correct document on every test query
+  (real cosine similarities ranged 0.19–0.69). `RAG_TOP_K` / `RAG_SIMILARITY_THRESHOLD`
+  env vars (`backend/.env`) mirror these defaults.
 
 ## Running it locally
 
@@ -67,7 +93,7 @@ Supabase URL, service role key, OpenAI key, and a self-chosen `ADMIN_KEY`:
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python ingest.py               # embeds kb/*.md as seed documents
+python -m scripts.run_ingest   # embeds kb/*.md as seed documents
 uvicorn main:app --reload --port 8000
 ```
 
@@ -84,6 +110,12 @@ The landing page looks for a photo at `frontend/public/photo.jpg`, falling back 
 initials avatar if it isn't there. Links (GitHub, LinkedIn, press) live in
 `frontend/src/lib/links.ts`.
 
+## CI
+
+`.github/workflows/ingest-kb.yml` re-runs `python -m scripts.run_ingest` against the
+production Supabase project whenever a push to `main` touches `kb/**`, so editing a
+seed doc and merging is enough to update the live KB — no manual re-ingestion step.
+
 ## Deployment
 
 The backend deploys to Railway (root directory `backend/`, start command
@@ -97,5 +129,5 @@ else.
 
 - The knowledge base intentionally excludes phone number; the assistant directs
   contact requests to email and LinkedIn instead.
-- Seed ingestion is idempotent per title — re-running `ingest.py` replaces a
-  document's chunks rather than duplicating them.
+- Seed ingestion is idempotent per `slug` — re-running `python -m scripts.run_ingest`
+  upserts each document in place (`ON CONFLICT (slug)`) rather than duplicating it.

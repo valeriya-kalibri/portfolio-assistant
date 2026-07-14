@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -15,6 +15,11 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   async function sendMessage() {
     const text = input.trim();
@@ -62,6 +67,7 @@ export default function Chat() {
           </div>
         ))}
         {loading && <div className="text-left text-base text-white/40">Thinking...</div>}
+        <div ref={bottomRef} />
       </div>
       <div className="flex gap-2 border-t border-gold/15 p-4">
         <input

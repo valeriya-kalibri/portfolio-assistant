@@ -51,7 +51,8 @@ def chat(request: ChatRequest):
         {
             "messages": messages,
             "query": request.message,
-            "intent": "",
+            "search_query": "",
+            "intent": "about_me",
             "rag_results": [],
             "response": "",
         }
@@ -71,6 +72,8 @@ class UrlIngestRequest(BaseModel):
 
 class DocumentSummary(BaseModel):
     id: str
+    slug: str
+    topic: str
     title: str
     source_type: str
     created_at: str
@@ -85,14 +88,14 @@ def get_documents():
 def upload_document(title: str = Form(...), file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF uploads are supported")
-    chunk_count = store_uploaded_pdf(title, file.filename, file.file.read())
-    return {"title": title, "chunks": chunk_count}
+    doc = store_uploaded_pdf(title, file.filename, file.file.read())
+    return {"slug": doc["slug"], "title": doc["title"]}
 
 
 @app.post("/kb/documents/url", dependencies=[Depends(require_admin)])
 def ingest_url(request: UrlIngestRequest):
-    chunk_count = store_url_document(request.title, request.url)
-    return {"title": request.title, "chunks": chunk_count}
+    doc = store_url_document(request.title, request.url)
+    return {"slug": doc["slug"], "title": doc["title"]}
 
 
 @app.delete("/kb/documents/{document_id}", dependencies=[Depends(require_admin)])
