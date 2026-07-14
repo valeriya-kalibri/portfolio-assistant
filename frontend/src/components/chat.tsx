@@ -16,10 +16,18 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   async function sendMessage() {
     const text = input.trim();
@@ -52,13 +60,13 @@ export default function Chat() {
   }
 
   return (
-    <div className="mx-auto flex h-[65vh] w-full min-h-0 flex-1 flex-col rounded-[10px] border border-gold/40 bg-[#141311] shadow-[0_0_30px_rgba(212,175,55,0.08)] sm:h-auto">
-      <div className="flex-1 space-y-4 overflow-y-auto p-6">
+    <div className="mx-auto flex w-full min-h-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-gold/40 bg-[#141311] shadow-[0_0_30px_rgba(212,175,55,0.08)]">
+      <div className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
             <span
               className={
-                "inline-block max-w-[80%] rounded-lg px-4 py-3 text-lg " +
+                "inline-block max-w-[80%] break-words rounded-lg px-4 py-3 text-base sm:text-lg " +
                 (m.role === "user" ? "bg-gold font-medium text-ink" : "bg-white/10 text-white")
               }
             >
@@ -69,18 +77,26 @@ export default function Chat() {
         {loading && <div className="text-left text-base text-white/40">Thinking...</div>}
         <div ref={bottomRef} />
       </div>
-      <div className="flex gap-2 border-t border-gold/15 p-4">
-        <input
-          className="flex-1 rounded-md border border-white/10 bg-ink px-4 py-3 text-lg text-white outline-none focus:border-gold"
+      <div className="flex items-end gap-2 border-t border-gold/15 p-3 sm:p-4">
+        <textarea
+          ref={textareaRef}
+          rows={1}
+          className="chat-input min-w-0 flex-1 resize-none overflow-y-auto rounded-md border border-white/10 bg-ink px-3 py-2.5 text-base leading-snug text-white outline-none focus:border-gold sm:px-4 sm:py-3 sm:text-lg"
+          style={{ maxHeight: "4.5em" }}
           placeholder="Ask about Val's skills, experience, or projects..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
         />
         <button
           onClick={sendMessage}
           disabled={loading}
-          className="rounded-md bg-gold px-6 py-3 text-lg font-semibold text-ink transition-shadow hover:bg-gold-light hover:shadow-[0_0_20px_rgba(212,175,55,0.35)] disabled:opacity-50"
+          className="shrink-0 rounded-md bg-gold px-4 py-2.5 text-base font-semibold text-ink transition-shadow hover:bg-gold-light hover:shadow-[0_0_20px_rgba(212,175,55,0.35)] disabled:opacity-50 sm:px-6 sm:py-3 sm:text-lg"
         >
           Send
         </button>

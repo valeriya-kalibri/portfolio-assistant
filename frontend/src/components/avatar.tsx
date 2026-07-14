@@ -7,14 +7,14 @@ export default function Avatar() {
 
   if (broken) {
     return (
-      <div className="flex aspect-[4/5] w-56 shrink-0 items-center justify-center rounded-2xl bg-gold text-4xl font-semibold text-ink ring-2 ring-gold/60 shadow-[0_0_30px_rgba(212,175,55,0.25)] sm:aspect-auto sm:w-96">
+      <div className="flex aspect-square w-16 shrink-0 items-center justify-center rounded-full bg-gold text-lg font-semibold text-ink ring-2 ring-gold/60 shadow-[0_0_20px_rgba(212,175,55,0.25)] sm:aspect-auto sm:w-96 sm:rounded-2xl sm:text-4xl sm:shadow-[0_0_30px_rgba(212,175,55,0.25)]">
         VP
       </div>
     );
   }
 
   return (
-    <div className="aspect-[4/5] w-56 shrink-0 overflow-hidden rounded-2xl ring-2 ring-gold/60 shadow-[0_0_30px_rgba(212,175,55,0.25)] sm:aspect-auto sm:w-96">
+    <div className="aspect-square w-16 shrink-0 overflow-hidden rounded-full ring-2 ring-gold/60 shadow-[0_0_20px_rgba(212,175,55,0.25)] sm:aspect-auto sm:w-96 sm:rounded-2xl sm:shadow-[0_0_30px_rgba(212,175,55,0.25)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/photo.jpg"

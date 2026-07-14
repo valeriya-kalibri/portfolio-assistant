@@ -7,17 +7,17 @@ const summary =
 
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center gap-4 px-6 py-6 sm:h-screen sm:overflow-hidden">
-      <section className="flex shrink-0 flex-col items-center gap-3 text-center sm:flex-row sm:items-stretch sm:text-left">
+    <main className="mx-auto flex h-dvh max-w-6xl flex-col items-center gap-2 overflow-hidden px-4 py-3 sm:gap-4 sm:px-6 sm:py-6">
+      <section className="flex w-full shrink-0 flex-row items-center gap-3 text-left sm:items-stretch">
         <Avatar />
-        <div className="flex flex-col items-center gap-2 sm:items-start">
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5 sm:gap-2">
           <div>
-            <h1 className="text-3xl font-semibold tracking-wide sm:text-4xl">Valeriya Paine</h1>
-            <p className="mt-2 text-xl font-semibold leading-snug text-gold sm:text-2xl">
+            <h1 className="text-lg font-semibold tracking-wide sm:text-4xl">Valeriya Paine</h1>
+            <p className="mt-0.5 text-xs font-semibold leading-snug text-gold sm:mt-2 sm:text-2xl">
               Custom AI Solutions | Agentic Workflows | <span className="whitespace-nowrap">AI Automation Systems</span>
             </p>
           </div>
-          <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {links.map((link) => (
               <a
                 key={link.label}
@@ -30,7 +30,7 @@ export default function Home() {
               </a>
             ))}
           </div>
-          <p className="max-w-2xl text-sm leading-snug text-white/80">{summary}</p>
+          <p className="hidden max-w-2xl text-sm leading-snug text-white/80 sm:block">{summary}</p>
         </div>
       </section>
 
