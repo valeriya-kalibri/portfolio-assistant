@@ -7,7 +7,7 @@ const summary =
 
 export default function Home() {
   return (
-    <main className="mx-auto flex h-screen max-w-6xl flex-col items-center gap-4 overflow-hidden px-6 py-6">
+    <main className="mx-auto flex min-h-screen max-w-6xl flex-col items-center gap-4 px-6 py-6 sm:h-screen sm:overflow-hidden">
       <section className="flex shrink-0 flex-col items-center gap-3 text-center sm:flex-row sm:items-stretch sm:text-left">
         <Avatar />
         <div className="flex flex-col items-center gap-2 sm:items-start">

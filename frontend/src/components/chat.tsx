@@ -52,7 +52,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="mx-auto flex w-full min-h-0 flex-1 flex-col rounded-[10px] border border-gold/40 bg-[#141311] shadow-[0_0_30px_rgba(212,175,55,0.08)]">
+    <div className="mx-auto flex h-[65vh] w-full min-h-0 flex-1 flex-col rounded-[10px] border border-gold/40 bg-[#141311] shadow-[0_0_30px_rgba(212,175,55,0.08)] sm:h-auto">
       <div className="flex-1 space-y-4 overflow-y-auto p-6">
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
