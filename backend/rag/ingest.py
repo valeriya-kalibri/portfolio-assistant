@@ -20,6 +20,7 @@ TOPIC_BY_STEM: dict[str, str] = {
     "faq": "faq",
     "personality": "personality",
     "about-this-assistant": "meta",
+    "3d-background-details": "3d_background",
 }
 
 
