@@ -14,8 +14,9 @@ employers.
 ```
 frontend/   Next.js 15 (App Router) + TypeScript + Tailwind — landing page + chat UI
 backend/    FastAPI + LangGraph agent + RAG over Supabase pgvector
-kb/         17 topic-coherent seed docs (identity, career, venture, 8 projects, skills,
-            education, press, faq, personality, assistant's own architecture)
+kb/         18 topic-coherent seed docs (identity, career, venture, 8 projects, skills,
+            education, press, faq, personality, assistant's own architecture, her
+            3D/VR production background)
 supabase/   SQL migrations: pgvector, kb_documents (single-table, whole-doc chunking),
             kb-documents Storage bucket
 ```
@@ -41,11 +42,11 @@ Content reaches the vector store through three paths, all defined in
 doesn't care how a document got there. Nothing is sub-split — each row is one
 complete, topic-coherent document, embedded and retrieved as a single chunk:
 
-- **Seed content** — the 17 markdown files in `kb/` (identity, career timeline, the
+- **Seed content** — the 18 markdown files in `kb/` (identity, career timeline, the
   Kalibri Studios venture, eight individual projects, skills, education, press, FAQ,
-  personality, and the assistant's own architecture) are embedded by
-  `backend/rag/ingest.py`, run via `python -m scripts.run_ingest` from `backend/`.
-  This is how the initial bio content got in.
+  personality, the assistant's own architecture, and her 3D/VR production background)
+  are embedded by `backend/rag/ingest.py`, run via `python -m scripts.run_ingest` from
+  `backend/`. This is how the initial bio content got in.
 - **PDF upload** — `store_uploaded_pdf` saves the file to the `kb-documents` Storage
   bucket, extracts text, and embeds it whole. Exposed via
   `POST /kb/documents/upload`.
